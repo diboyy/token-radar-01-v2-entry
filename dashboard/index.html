@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar: pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+<h1>Token Radar <span class="tag">radar-3</span></h1>
+<p class="sub">Every pre-token protocol in the snapshot, ranked by an implied value derived from its own figures. No token recorded yet — the board is the watchlist, plus everything below it.</p>
+<div id="stats" class="stats"></div>
+</header>
+<main>
+<section id="signals" aria-label="Top signals"></section>
+<section class="panel" id="modelPanel" aria-label="Value model">
+<h2>Value model</h2>
+<p class="model-formula">implied = TVL &times; 0.30 &times; growth &times; maturity &times; category &times; chains &times; readiness</p>
+<p class="muted">growth = 1 + clamp(7-day change, &minus;50%, +150%) &times; 0.6 &nbsp;·&nbsp; maturity = 0.65 + 0.55 &times; exp(&minus;((age &minus; 730) / 1000)&sup2;) &nbsp;·&nbsp; chains = 1 + 0.02 &times; extra chains (max 5) &nbsp;·&nbsp; readiness = 0.15 for already-traded products, 1.00 otherwise. Age unknown counts as 365 days.</p>
+<div id="catTable"></div>
+</section>
+<section class="panel" id="sandboxPanel" aria-label="Model sandbox">
+<h2>Model sandbox <span class="muted small">— move a slider and the board re-ranks live</span></h2>
+<div id="sandbox" class="sandbox"></div>
+<div class="row"><button id="sandboxReset" type="button">Reset model</button><span id="sandboxNote" class="muted small"></span></div>
+</section>
+<div class="tabs" role="tablist">
+<button id="tabBoard" role="tab" type="button">Pre-token board</button>
+<button id="tabLive" role="tab" type="button">Live tokens</button>
+<span class="muted small tab-note">Live tokens already trade: the market's own values, never mixed into the ranking.</span>
+</div>
+<div class="controls">
+<input id="q" type="search" placeholder="Search name or slug…" aria-label="Search protocols">
+<select id="chainF" aria-label="Filter by chain"></select>
+<select id="catF" aria-label="Filter by category"></select>
+<label class="chk"><input id="wlF" type="checkbox"> Watchlist only</label>
+<label class="chk">Min TVL $<input id="minTvl" type="number" min="0" step="1000000" placeholder="0" aria-label="Minimum TVL in dollars"></label>
+<button id="csvBtn" type="button">Export CSV</button>
+<button id="palBtn" type="button">Command palette <kbd>Ctrl K</kbd></button>
+</div>
+<div id="compareBar" class="compare-bar" hidden></div>
+<div id="tableWrap"></div>
+<section id="detail" class="panel" hidden></section>
+</main>
+<footer class="muted small" id="foot"></footer>
+<div id="palette" class="palette" hidden>
+<div class="palette-box">
+<input id="palInput" type="text" placeholder="Type a protocol name, or an action…" aria-label="Command palette">
+<div id="palList" class="pal-list"></div>
+<p class="muted small">↑↓ to move · Enter to open · Esc to close</p>
+</div>
+</div>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
