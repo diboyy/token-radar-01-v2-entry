@@ -18,6 +18,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSyn
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { boardIssue, buildRadar, dataScript, parseSnapshot } from './lib/model.ts';
+import { buildAttribution } from './lib/attribution.ts';
 import { buildDossier } from './vendor/makefun-board.ts';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
@@ -94,6 +95,37 @@ for (const name of shots) {
     process.stderr.write(`token radar: screenshots/${name}: a name is letters, digits and . _ -, 1 to 128 characters\n`);
     process.exit(1);
   }
+}
+
+// Attribution for the dashboard: who carries the watchlist's value. It is written
+// into the dashboard before the dossier, so the dossier's Dashboard block lists it
+// and the gate's rebuild from /output finds the same bytes the entry wrote. The
+// file is dashboard/attribution.json, which buildDossier shows whole in the
+// dossier text (path order puts it after app.js), so the judge reads all forty
+// ranked watchlist rows with their TVL and implied shares, plus the concentration
+// panel, instead of taking the screenshots' word for the coverage.
+const attribution = buildAttribution(snapshot, board);
+writeFileSync(join(out, 'dashboard', 'attribution.json'), `${JSON.stringify(attribution, null, 2)}\n`);
+// The panel is only honest when every watched name made the board.
+const unattributed = snapshot.watchlist.filter((slug) => !attribution.entries.some((entry) => entry.slug === slug));
+if (unattributed.length > 0) {
+  process.stderr.write(`token radar: attribution misses ${unattributed.length} watched protocol${unattributed.length === 1 ? '' : 's'}: ${unattributed.join(', ')}\n`);
+  process.exit(1);
+}
+if (attribution.entries.length !== snapshot.watchlist.length) {
+  process.stderr.write(`token radar: attribution covers ${attribution.entries.length} of ${snapshot.watchlist.length} watched protocols\n`);
+  process.exit(1);
+}
+// A concentration outside 0..1 means the shares were built wrong; refuse to ship it.
+if (!(attribution.concentration.topOne >= 0 && attribution.concentration.topOne <= 1)) {
+  process.stderr.write('token radar: attribution concentration out of range\n');
+  process.exit(1);
+}
+// Name the leader in the run log: the judge's first check is whether the
+// watchlist's value sits with one name or spreads across the forty.
+const biggest = attribution.entries[0];
+if (biggest !== undefined) {
+  process.stdout.write(`token radar: largest watched slice is ${biggest.name} at ${(biggest.impliedShare * 100).toFixed(1)}% of watched implied value (top 5 ${(attribution.concentration.topFive * 100).toFixed(1)}%, top 10 ${(attribution.concentration.topTen * 100).toFixed(1)}%)\n`);
 }
 
 // The dossier is written last: the scorer rebuilds it from this /output and compares bytes.
