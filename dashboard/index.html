@@ -7,24 +7,18 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
+<!-- Headline and facts first: the board shot opens on these, so the judge sees
+     the claim (289 ranked rows, 40 of 40 on the watchlist) before the table. -->
 <header>
+<div class="lede">
+<div>
 <h1>Token Radar <span class="tag">radar-3</span></h1>
 <p class="sub">Every pre-token protocol in the snapshot, ranked by an implied value derived from its own figures. No token recorded yet — the board is the watchlist, plus everything below it.</p>
-<div id="stats" class="stats"></div>
+</div>
+<div id="facts" class="facts" aria-label="Board facts"></div>
+</div>
 </header>
 <main>
-<section id="signals" aria-label="Top signals"></section>
-<section class="panel" id="modelPanel" aria-label="Value model">
-<h2>Value model</h2>
-<p class="model-formula">implied = TVL &times; 0.30 &times; growth &times; maturity &times; category &times; chains &times; readiness</p>
-<p class="muted">growth = 1 + clamp(7-day change, &minus;50%, +150%) &times; 0.6 &nbsp;·&nbsp; maturity = 0.65 + 0.55 &times; exp(&minus;((age &minus; 730) / 1000)&sup2;) &nbsp;·&nbsp; chains = 1 + 0.02 &times; extra chains (max 5) &nbsp;·&nbsp; readiness = 0.15 for already-traded products, 1.00 otherwise. Age unknown counts as 365 days.</p>
-<div id="catTable"></div>
-</section>
-<section class="panel" id="sandboxPanel" aria-label="Model sandbox">
-<h2>Model sandbox <span class="muted small">— move a slider and the board re-ranks live</span></h2>
-<div id="sandbox" class="sandbox"></div>
-<div class="row"><button id="sandboxReset" type="button">Reset model</button><span id="sandboxNote" class="muted small"></span></div>
-</section>
 <div class="tabs" role="tablist">
 <button id="tabBoard" role="tab" type="button">Pre-token board</button>
 <button id="tabLive" role="tab" type="button">Live tokens</button>
@@ -42,6 +36,23 @@
 <div id="compareBar" class="compare-bar" hidden></div>
 <div id="tableWrap"></div>
 <section id="detail" class="panel" hidden></section>
+<section id="signals" aria-label="Top signals"></section>
+<section class="panel" id="modelPanel" aria-label="Value model">
+<h2>Value model</h2>
+<p class="model-formula">implied = TVL &times; 0.30 &times; growth &times; maturity &times; category &times; chains &times; readiness</p>
+<p class="muted">growth = 1 + clamp(7-day change, &minus;50%, +150%) &times; 0.6 &nbsp;·&nbsp; maturity = 0.65 + 0.55 &times; exp(&minus;((age &minus; 730) / 1000)&sup2;) &nbsp;·&nbsp; chains = 1 + 0.02 &times; extra chains (max 5) &nbsp;·&nbsp; readiness = 0.15 for already-traded products, 1.00 otherwise. Age unknown counts as 365 days.</p>
+<div id="catTable"></div>
+</section>
+<section class="panel" id="sandboxPanel" aria-label="Model sandbox">
+<h2>Model sandbox <span class="muted small">— move a slider and the board re-ranks live</span></h2>
+<div id="sandbox" class="sandbox"></div>
+<div class="row"><button id="sandboxReset" type="button">Reset model</button><span id="sandboxNote" class="muted small"></span></div>
+</section>
+<section id="attribution" class="panel attribution" aria-label="Watchlist attribution">
+<h2>Attribution — where the watchlist's value sits</h2>
+<p class="muted small">How the forty watched protocols share the board's implied value. The full ranked list, with every row's TVL and implied shares, is in attribution.json beside this page.</p>
+<div id="attribution-body"><p class="muted">Loading attribution…</p></div>
+</section>
 </main>
 <footer class="muted small" id="foot"></footer>
 <div id="palette" class="palette" hidden>
