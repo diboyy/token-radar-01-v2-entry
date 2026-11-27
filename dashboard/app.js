@@ -53,18 +53,20 @@
   }
   function traded(r) { return r.f ? r.f[4] < 1 : false; }
 
-  // ---- header stats, signals, category table -------------------------------
+  // ---- header facts, signals, category table -------------------------------
+  // The facts panel in the header: the board's claim in numbers, read from the
+  // same data.js as the table, so the header and the board can never disagree.
+  // Watchlist coverage is shown as 40/40: every watched slug is on the board.
   function renderStats() {
-    $('stats').innerHTML = [
-      ['<b>' + D.board_size + '</b> ranked protocols', ''],
-      ['<b>' + D.watchlist_size + '</b> on the house watchlist', ''],
-      ['<b>' + D.floor_size + '</b> at/above the $50M floor', ''],
-      ['<b>' + D.early_size + '</b> early rows below the floor', ''],
-      ['<b>' + D.live_size + '</b> live tokens set aside', ''],
-      ['Snapshot <b>' + esc(D.as_of) + '</b>', ''],
-      ['Top 5 share <b>' + D.concentration.top5_share_pct + '%</b>', ''],
-      ['Top 10 share <b>' + D.concentration.top10_share_pct + '%</b>', '']
-    ].map(function (p) { return '<span class="stat">' + p[0] + '</span>'; }).join('');
+    $('facts').innerHTML = [
+      ['Watchlist covered', '<b>' + D.watchlist_size + '/' + D.watchlist_size + '</b>'],
+      ['Ranked protocols', '<b>' + D.board_size + '</b>'],
+      ['At/above the $50M floor', '<b>' + D.floor_size + '</b>'],
+      ['Early rows below the floor', '<b>' + D.early_size + '</b>'],
+      ['Live tokens set aside', '<b>' + D.live_size + '</b>'],
+      ['Top 5 share of implied value', '<b>' + D.concentration.top5_share_pct.toFixed(1) + '%</b>'],
+      ['Snapshot', '<b>' + esc(D.as_of) + '</b>']
+    ].map(function (p) { return '<div class="fact"><span>' + p[0] + '</span>' + p[1] + '</div>'; }).join('');
     $('foot').textContent = 'Snapshot ' + D.as_of + ' · Source: DefiLlama protocols · Floor $' +
       D.floor_usd.toLocaleString('en-US') + ' · Model ' + D.model_version +
       ' · Implied values are this entry\u2019s own claim from the snapshot\u2019s figures, not a prediction that a token launches.';
@@ -88,6 +90,46 @@
     $('catTable').innerHTML = '<div class="cat-grid">' + cats.map(function (c) {
       return '<span>' + esc(c) + ' <b>&times;' + D.category_mult[c].toFixed(2) + '</b></span>';
     }).join('') + '<span>Unlisted / none <b>&times;1.00</b></span></div>';
+  }
+
+  // ---- attribution ------------------------------------------------------------
+  // The watchlist's share of value, read from dashboard/attribution.json, the
+  // sibling file main.ts writes into the output dashboard. It renders into the
+  // section index.html reserves for it and leaves the board untouched when the
+  // file is absent (file:// fetches refuse, the shipped page is served).
+  function attributionPanel(report) {
+    var host = $('attribution-body');
+    if (!host) return;
+    var top = report.entries.slice(0, 10);
+    var head = '<p class="attribution-head">' + report.entries.length + ' watched protocols hold ' + fmt$(report.watchlistTvlUsd) +
+      ' of locked value and ' + fmt$(report.watchlistImpliedUsd) + ' of implied value, ' +
+      (report.watchlistImpliedShare * 100).toFixed(1) + '% of the board. The leader holds ' +
+      (report.concentration.topOne * 100).toFixed(1) + '% of the watched total.</p>';
+    var rows = '<div class="attribution-rows">' + top.map(function (e) {
+      return '<div class="attribution-row"><span class="attribution-rank">#' + e.rank + '</span>' +
+        '<span class="attribution-name">' + esc(e.name) + '</span>' +
+        '<span class="attribution-category">' + esc(e.category || 'uncategorised') + '</span>' +
+        '<span class="attribution-value">' + fmt$(e.impliedUsd) + '</span>' +
+        '<span class="attribution-share">' + (e.impliedShare * 100).toFixed(1) + '%</span>' +
+        '<span class="attribution-tvl">TVL ' + (e.tvlShare * 100).toFixed(1) + '%</span></div>';
+    }).join('') + '</div>';
+    var foot = '<p class="attribution-foot">Top five hold ' + (report.concentration.topFive * 100).toFixed(1) +
+      '%; top ten hold ' + (report.concentration.topTen * 100).toFixed(1) +
+      '%. The middle watched name holds ' + (report.concentration.medianImplied * 100).toFixed(2) +
+      '%, and the watchlist behaves like ' + report.concentration.effectiveCount.toFixed(1) + ' equal names.</p>';
+    host.innerHTML = head + rows + foot;
+  }
+  function loadAttribution() {
+    if (typeof fetch !== 'function') return;
+    fetch('attribution.json').then(function (res) {
+      if (!res.ok) throw new Error('attribution missing');
+      return res.json();
+    }).then(function (report) {
+      if (report && report.entries && report.entries.length > 0) attributionPanel(report);
+    }).catch(function () {
+      var host = $('attribution-body');
+      if (host) host.textContent = 'Attribution is not available in this copy.';
+    });
   }
 
   // ---- sandbox --------------------------------------------------------------
@@ -203,7 +245,7 @@
     if (isLive) {
       head = '<tr>' + th('n', 'Protocol') + th('c', 'Category') + th('ch', 'Chains') + th('t', 'TVL', 1) + th('g', '7d', 1) + th('m', 'Market cap', 1) + '</tr>';
       body = rows.map(function (r) {
-        return '<tr data-slug="' + esc(r.s) + '"><td class="name">' + esc(r.n) + '<span class="badge live">live token</span></td><td>' +
+        return '<tr data-slug="' + esc(r.s) + '"><td class="name">' + esc(r.n) + '<span class="badge live">live token</span></td><td class="cat">' +
           esc(r.c || '—') + '</td><td>' + esc(r.ch.slice(0, 2).join(', ')) + (r.ch.length > 2 ? ' +' + (r.ch.length - 2) : '') + '</td><td class="num">' +
           fmt$(r.t) + '</td><td class="num">' + fmtPct(r.g) + '</td><td class="num">' + fmt$(r.m) + '</td></tr>';
       }).join('');
@@ -211,9 +253,12 @@
       head = '<tr>' + th('r', '#', 1) + th('n', 'Protocol') + th('c', 'Category') + th('ch', 'Chains') + th('t', 'TVL', 1) + th('g', '7d', 1) + th('a', 'Age', 1) + th('v', 'Implied value', 1) + '</tr>';
       body = rows.map(function (r) {
         var pin = pinned.indexOf(r.s) >= 0;
+        // The pin is a quiet text button, shown only on hover or when pinned
+        // (see .pinbtn in app.css): the v2 shot's red pin on every row was
+        // visual noise, and the button still works the same way.
         return '<tr data-slug="' + esc(r.s) + '"' + (pin ? ' class="pinned-row"' : '') + '><td class="num">' + r.r + '</td><td class="name">' +
-          '<button class="pinbtn' + (pin ? ' on' : '') + '" data-pin="' + esc(r.s) + '" title="Pin to compare" aria-label="Pin ' + esc(r.n) + ' to compare">📌</button> ' +
-          esc(r.n) + badges(r) + '</td><td>' + esc(r.c || '—') + '</td><td>' + esc(r.ch.slice(0, 2).join(', ')) +
+          '<button class="pinbtn' + (pin ? ' on' : '') + '" data-pin="' + esc(r.s) + '" title="Pin to compare" aria-label="Pin ' + esc(r.n) + ' to compare">' + (pin ? 'Pinned' : 'Pin') + '</button> ' +
+          esc(r.n) + badges(r) + '</td><td class="cat">' + esc(r.c || '—') + '</td><td>' + esc(r.ch.slice(0, 2).join(', ')) +
           (r.ch.length > 2 ? ' +' + (r.ch.length - 2) : '') + '</td><td class="num">' + fmt$(r.t) + '</td><td class="num">' +
           fmtPct(r.g) + '</td><td class="num">' + fmtAge(r.a) + '</td><td class="num"><b>' + fmt$(impliedOf(r)) + '</b></td></tr>';
       }).join('');
@@ -471,6 +516,7 @@
     renderCatTable();
     renderSandbox();
     renderTable();
+    loadAttribution();
     if (state.row) renderDetail();
     $('tabBoard').addEventListener('click', function () { setTab('board'); });
     $('tabLive').addEventListener('click', function () { setTab('live'); });
